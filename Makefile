@@ -1,5 +1,5 @@
-unsafe: unsafe.c
-	gcc unsafe.c -Os -Wall -Wextra -Wpedantic -Werror -o unsafe
+unsafe: unsafe.cpp
+	g++ unsafe.cpp -Os -Wall -Wextra -Wpedantic -Werror -o unsafe
 
 run: unsafe
 	./unsafe
