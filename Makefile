@@ -1,4 +1,4 @@
-unsafe: unsafe.cpp
+safe: unsafe.cpp
 	g++ unsafe.cpp -Os -Wall -Wextra -Wpedantic -Werror -o unsafe
 
 run: unsafe

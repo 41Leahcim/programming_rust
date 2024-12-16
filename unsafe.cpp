@@ -1,13 +1,14 @@
-#include <stdio.h>
+#include <iostream>
+#include <array>
 
 int main(const int argc, const char **argv)
 {
     for (int i = 0; i < argc; i++)
     {
-        printf("\"%s\" ", argv[i]);
+        std::cout << '"' << argv[i] << "\" ";
     }
-    putchar('\n');
-    unsigned long a[1];
+    std::cout << '\n';
+    std::array<unsigned long, 1> a;
 
     // C allows this, but behaviour is unpredictable
     a[3] = 0x7ffff7b36cebUL;
