@@ -10,8 +10,14 @@ int main(const int argc, const char **argv)
     std::cout << '\n';
     std::array<unsigned long, 1> a;
 
-    // C allows this, but behaviour is unpredictable
-    a[3] = 0x7ffff7b36cebUL;
-    printf("%lu\n", a[3]);
+    try
+    {
+        a.at(3) = 0x7ffff7b36cebUL;
+        std::cout << a.at(3) << '\n';
+    }
+    catch (std::out_of_range &error)
+    {
+        std::cout << "Failed to set requested index: " << error.what() << '\n';
+    }
     return 0;
 }
