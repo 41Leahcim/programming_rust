@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use num::{Complex, Num};
+use num::{Complex, Num, complex::Complex64};
 
 /// Try to determine if `c` is in the Mandelbrot set, using at most `limit` iterations to decide.
 ///
@@ -36,8 +36,45 @@ pub fn parse_pair<T: FromStr>(s: &str, separator: char) -> Option<(T, T)> {
         .and_then(|(left, right)| Some((left.parse::<T>().ok()?, right.parse::<T>().ok()?)))
 }
 
+/// Parse a  pair of floating-point numbers seperated by a comma as a complex number.
 pub fn parse_complex<T: FromStr>(s: &str) -> Option<Complex<T>> {
     parse_pair(s, ',').map(|(re, im)| Complex { re, im })
+}
+
+pub struct ImageShape {
+    pub width: usize,
+    pub height: usize,
+}
+
+pub struct PixelPosition {
+    pub x: usize,
+    pub y: usize,
+}
+
+/// Given the row and column of a pixel in the output image, return the corresponding point on the
+/// complex plane.
+///
+/// `bounds` is an object giving the width and height of the image in pixels
+/// `pixel` is an object indicating a particular pixel in that image
+/// `upper_left` and `lower_right` parameters are points on the complex plane designating the area
+/// our image covers.
+pub const fn pixel_to_point(
+    bounds: ImageShape,
+    pixel: PixelPosition,
+    upper_left: Complex64,
+    lower_right: Complex64,
+) -> Complex64 {
+    let (width, height) = (
+        lower_right.re - upper_left.re,
+        upper_left.im - lower_right.im,
+    );
+    Complex {
+        re: upper_left.re + pixel.x as f64 * width / bounds.width as f64,
+
+        // Pixel.x is higher for lower pixel, but the imaginary component is higher for higher
+        // pixels of the image.
+        im: upper_left.im - pixel.y as f64 * height / bounds.height as f64,
+    }
 }
 
 #[test]
@@ -62,4 +99,20 @@ fn test_parse_complex() {
         })
     );
     assert_eq!(parse_complex::<f64>(",-0.0625"), None);
+}
+
+#[test]
+fn test_pixel_to_point() {
+    assert_eq!(
+        pixel_to_point(
+            ImageShape {
+                width: 100,
+                height: 200
+            },
+            PixelPosition { x: 25, y: 175 },
+            Complex::new(-1.0, 1.0),
+            Complex::new(1.0, -1.0)
+        ),
+        Complex::new(-0.5, -0.75)
+    );
 }
