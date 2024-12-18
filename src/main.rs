@@ -1,4 +1,4 @@
-use std::env::args;
+use actix_web::{App, HttpResponse, HttpServer, web};
 
 pub const fn gcd(mut left: u64, mut right: u64) -> u64 {
     assert!(left != 0 && right != 0);
@@ -11,18 +11,24 @@ pub const fn gcd(mut left: u64, mut right: u64) -> u64 {
     left
 }
 
-fn main() {
-    let numbers = args()
-        .skip(1)
-        .map(|arg| {
-            arg.trim()
-                .parse::<u64>()
-                .expect("Error parsing argument, only pass numbers as arguments")
-        })
-        .collect::<Vec<_>>();
+async fn get_index() -> HttpResponse {
+    HttpResponse::Ok().content_type("text/html").body(
+        r#"<title>GCD calculator</title>
+    <form action="/gcd" method="post">
+    <input type="number" name="n">
+    <input type="number" name="m">
+    <button type="submit">Compute GCD</button>
+    </form>"#,
+    )
+}
 
-    assert!(!numbers.is_empty(), "Usage: gcd NUMBER ...");
-
-    let divider = numbers.iter().skip(1).copied().fold(numbers[0], gcd);
-    println!("The greatest common divisor of {numbers:?} is {divider}");
+#[actix_web::main]
+async fn main() {
+    println!("Serving on http://localhost:3000");
+    HttpServer::new(|| App::new().route("/", web::get().to(get_index)))
+        .bind("127.0.0.1:3000")
+        .expect("Failed to bind server to address")
+        .run()
+        .await
+        .expect("Failed to run server");
 }
