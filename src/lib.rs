@@ -1,5 +1,6 @@
-use std::str::FromStr;
+use std::{path::Path, str::FromStr};
 
+use image::{GrayImage, Luma};
 use num::{Complex, Num, complex::Complex64};
 
 /// Try to determine if `c` is in the Mandelbrot set, using at most `limit` iterations to decide.
@@ -41,6 +42,7 @@ pub fn parse_complex<T: FromStr>(s: &str) -> Option<Complex<T>> {
     parse_pair(s, ',').map(|(re, im)| Complex { re, im })
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ImageShape {
     pub width: usize,
     pub height: usize,
@@ -75,6 +77,55 @@ pub const fn pixel_to_point(
         // pixels of the image.
         im: upper_left.im - pixel.y as f64 * height / bounds.height as f64,
     }
+}
+
+/// Render a rectangle of the Mandelbrot set into a buffer of pixels.
+///
+/// The `bounds` argument gives thw width and height of the buffer `pixels`,
+/// which holds one grayscale pixel per byte. The `ùpper_left` and `lower_right`arguments
+/// specify points on the complex plane corresponding to the upper-left and lower-right
+/// corners of the pixel buffer.
+pub fn render_buffer(
+    pixels: &mut [u8],
+    bounds: ImageShape,
+    upper_left: Complex64,
+    lower_right: Complex64,
+) {
+    assert_eq!(pixels.len(), bounds.width * bounds.height);
+    for row in 0..bounds.height {
+        for column in 0..bounds.width {
+            let point = pixel_to_point(
+                bounds,
+                PixelPosition { x: column, y: row },
+                upper_left,
+                lower_right,
+            );
+            pixels[row * bounds.width + column] =
+                escape_time(point, 255).map_or(0, |count| 255 - count as u8);
+        }
+    }
+}
+
+pub fn render_image(
+    filename: &Path,
+    bounds: ImageShape,
+    upper_left: Complex64,
+    lower_right: Complex64,
+) -> Result<(), image::ImageError> {
+    GrayImage::from_par_fn(bounds.width as u32, bounds.height as u32, |column, row| {
+        let point = pixel_to_point(
+            bounds,
+            PixelPosition {
+                x: column as usize,
+                y: row as usize,
+            },
+            upper_left,
+            lower_right,
+        );
+        Luma([escape_time(point, 255).map_or(0, |count| 255 - count as u8)])
+    })
+    .save(filename)?;
+    Ok(())
 }
 
 #[test]
