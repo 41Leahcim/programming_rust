@@ -1,39 +1,45 @@
-use std::{env, path::Path, process};
+use std::{env, path::PathBuf, process};
 
-use programming_rust::{ImageShape, parse_complex, parse_pair, render_image};
+use text_colorizer::Colorize;
 
-fn invalid_arg_count(binary_name: &str) -> ! {
-    eprintln!("Usage: {binary_name} FILE WIDTHxHEIGHT LEFTxUPPER RIGHTxLOWER");
-    eprintln!("Example: {binary_name} mandel.png 1000x750 -1.2,0.35 -1,0.2");
-    process::exit(1);
+fn print_usage() {
+    eprintln!(
+        "{} - change occurences of one string into another",
+        "quickreplace".green()
+    );
+    eprintln!("Usage: quickreplace <target> <replacement> <INPUT_FILE> <OUTPUT_FILE>");
+}
+
+#[derive(Debug)]
+struct Arguments {
+    target: String,
+    replacement: String,
+    filename: PathBuf,
+    output: PathBuf,
+}
+
+impl Arguments {
+    fn too_few_arguments() -> ! {
+        print_usage();
+        eprintln!(
+            "{} wrong number of arguments: expected 4.",
+            "Error".red().bold()
+        );
+        process::exit(1);
+    }
+
+    pub fn parse() -> Self {
+        let mut args = env::args().skip(1);
+        Self {
+            target: args.next().unwrap_or_else(|| Self::too_few_arguments()),
+            replacement: args.next().unwrap_or_else(|| Self::too_few_arguments()),
+            filename: PathBuf::from(args.next().unwrap_or_else(|| Self::too_few_arguments())),
+            output: PathBuf::from(args.next().unwrap_or_else(|| Self::too_few_arguments())),
+        }
+    }
 }
 
 fn main() {
-    let mut args = env::args();
-    let binary_name = args.next().unwrap();
-    let image_name = args
-        .next()
-        .unwrap_or_else(|| invalid_arg_count(&binary_name));
-    let bounds = parse_pair::<usize>(
-        &args
-            .next()
-            .unwrap_or_else(|| invalid_arg_count(&binary_name)),
-        'x',
-    )
-    .map(|(width, height)| ImageShape { width, height })
-    .expect("Error parsing image dimension");
-    let upper_left = parse_complex::<f64>(
-        &args
-            .next()
-            .unwrap_or_else(|| invalid_arg_count(&binary_name)),
-    )
-    .expect("Error parsing upper left corner point");
-    let lower_right = parse_complex::<f64>(
-        &args
-            .next()
-            .unwrap_or_else(|| invalid_arg_count(&binary_name)),
-    )
-    .expect("Error parsing lower right corner point");
-
-    render_image(Path::new(&image_name), bounds, upper_left, lower_right).unwrap();
+    let args = Arguments::parse();
+    println!("{args:?}");
 }
