@@ -1,4 +1,10 @@
-use std::{env, path::PathBuf, process};
+use std::{
+    env,
+    fs::File,
+    io::{self, BufReader, BufWriter},
+    path::PathBuf,
+    process,
+};
 
 use text_colorizer::Colorize;
 
@@ -42,4 +48,29 @@ impl Arguments {
 fn main() {
     let args = Arguments::parse();
     println!("{args:?}");
+    let mut reader = BufReader::new(File::open(&args.filename).unwrap_or_else(|error| {
+        eprintln!(
+            "{} failed to open file for reading '{}': {error:?}",
+            args.filename.to_string_lossy(),
+            "Error:".red().bold()
+        );
+        process::exit(1);
+    }));
+    let mut writer = BufWriter::new(File::create(&args.output).unwrap_or_else(|error| {
+        eprintln!(
+            "{} failed to write to file '{}': {error:?}",
+            "Error:".red().bold(),
+            args.output.to_string_lossy()
+        );
+        process::exit(1);
+    }));
+    io::copy(&mut reader, &mut writer).unwrap_or_else(|error| {
+        eprintln!(
+            "{} failed to copy data from '{}' to '{}': {error}",
+            "Error:".red().bold(),
+            args.filename.to_string_lossy(),
+            args.output.to_string_lossy()
+        );
+        process::exit(1);
+    });
 }
