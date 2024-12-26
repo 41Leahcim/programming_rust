@@ -1,11 +1,12 @@
 use std::{
+    borrow::Cow,
     env,
-    fs::File,
-    io::{self, BufReader, BufWriter},
+    fs::{self},
     path::PathBuf,
     process,
 };
 
+use regex::Regex;
 use text_colorizer::Colorize;
 
 fn print_usage() {
@@ -45,30 +46,37 @@ impl Arguments {
     }
 }
 
+fn replace<'text>(
+    target: &str,
+    replacement: &str,
+    text: &'text str,
+) -> Result<Cow<'text, str>, regex::Error> {
+    let regex = Regex::new(target)?;
+    Ok(regex.replace_all(text, replacement))
+}
+
 fn main() {
     let args = Arguments::parse();
     println!("{args:?}");
-    let mut reader = BufReader::new(File::open(&args.filename).unwrap_or_else(|error| {
+    let text = fs::read_to_string(&args.filename).unwrap_or_else(|error| {
         eprintln!(
             "{} failed to open file for reading '{}': {error:?}",
             args.filename.to_string_lossy(),
             "Error:".red().bold()
         );
         process::exit(1);
-    }));
-    let mut writer = BufWriter::new(File::create(&args.output).unwrap_or_else(|error| {
+    });
+    let text = replace(&args.target, &args.replacement, &text).unwrap_or_else(|error| {
+        eprintln!(
+            "{} failed to replace text: {error:?}",
+            "Error:".red().bold()
+        );
+        process::exit(1);
+    });
+    fs::write(&args.output, text.as_bytes()).unwrap_or_else(|error| {
         eprintln!(
             "{} failed to write to file '{}': {error:?}",
             "Error:".red().bold(),
-            args.output.to_string_lossy()
-        );
-        process::exit(1);
-    }));
-    io::copy(&mut reader, &mut writer).unwrap_or_else(|error| {
-        eprintln!(
-            "{} failed to copy data from '{}' to '{}': {error}",
-            "Error:".red().bold(),
-            args.filename.to_string_lossy(),
             args.output.to_string_lossy()
         );
         process::exit(1);
